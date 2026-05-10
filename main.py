@@ -1,10 +1,13 @@
 import cv2
 import time
+import pygame
 import sounddevice as sd
 import numpy as np
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+
+pygame.mixer.init()
 
 Esc = 27  # KEYCODE FOR ESCAPE
 
@@ -34,6 +37,10 @@ def audio_callback(indata, frames, time_info, status):
     # volme detection for 0.03 and if time - last is more than 1, detect clap
     if volume > THRESHOLD and time.time() - last > 1:
         print("CLAPPED")
+
+        pygame.mixer.music.load("assets/Back_In_Black.mp3")
+        pygame.mixer.music.play()
+
         clap_detected = True
         last = time.time()
 
@@ -124,6 +131,7 @@ while True:
             stop_camera()
             break
     else:
+        pygame.mixer.music.stop()
         time.sleep(0.05)
 
 stream.stop()
