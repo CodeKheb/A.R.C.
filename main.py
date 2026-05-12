@@ -9,6 +9,12 @@ import core.camera as cam
 
 from config import Esc, SNAP_COOLDOWN
 
+def draw_hands():
+        thumb = hand[4]
+        middle = hand[12]
+        thumb_x, thumb_y = int(thumb.x * frame.shape[1]), int(thumb.y * frame.shape[0])
+        middle_x, middle_y = int(middle.x * frame.shape[1]), int(middle.y * frame.shape[0])
+        cv2.line(frame, (thumb_x, thumb_y), (middle_x, middle_y), (0, 255, 0), 2)
 
 while True:
     # detection for clap, camera toggle (indentation nightmare)
@@ -33,18 +39,26 @@ while True:
                     if current_time - gestures.last_snap > SNAP_COOLDOWN:
                         print("SNAP")
                         process.open_neovim()
-                        last_snap = current_time
+                        gestures.last_snap = current_time
+
+                direction = gestures.get_horizontal_direction(hand)
+                    
+                if direction == "right":
+                    print("MOVED RIGHT")
+                    process.window_right()
+
+                if direction == "left":
+                    print("MOVED LEFT")
+                    process.window_left()
+
 
                 for lm in hand:
                     x = int(lm.x * frame.shape[1])
                     y = int(lm.y * frame.shape[0])
                     cv2.circle(frame, (x, y), 3, (180, 100, 50), -1)
 
-                thumb = hand[4]
-                middle = hand[12]
-                thumb_x, thumb_y = int(thumb.x * frame.shape[1]), int(thumb.y * frame.shape[0])
-                middle_x, middle_y = int(middle.x * frame.shape[1]), int(middle.y * frame.shape[0])
-                cv2.line(frame, (thumb_x, thumb_y), (middle_x, middle_y), (0, 255, 0), 2)
+                draw_hands()
+
 
         cv2.imshow("A.R.C. Hello World", frame)
 
@@ -57,3 +71,6 @@ while True:
         time.sleep(0.05)
 
 audio.stream_stop()
+
+
+
