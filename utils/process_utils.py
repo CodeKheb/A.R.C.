@@ -91,3 +91,19 @@ def window_left():
 
     except Exception as e:
         print(f"Error Moving to Right: {e}")
+
+
+def close_window():
+    try:
+        win_id = subprocess.check_output(
+                ['xdotool', 'getactivewindow']
+                ).decode().strip()
+        subprocess.run([
+            'wmctrl',
+            '-ic',
+            win_id
+        ])
+        print("Window closed sir!")
+    except Exception as e:
+        print(f"Error closing window: {e}")
+

@@ -2,10 +2,12 @@ import sys
 import time
 import pygame
 import cv2
+import threading
 
 from PyQt6.QtWidgets import QApplication
 
 import core.audio as audio
+import core.speech as speech
 import utils.process_utils as process
 import core.gestures as gestures
 import core.camera as cam
@@ -14,6 +16,7 @@ from gui.main_window import MainWindow
 from config import SNAP_COOLDOWN
 
 app = QApplication(sys.argv)
+threading.Thread(target=speech.listen, daemon=True).start()
 
 def draw_hands(frame, hand):
         thumb = hand[4]
@@ -28,6 +31,21 @@ def process_camera():
     if audio.clap_detected:
         cam.toggle_camera()
         audio.clap_detected = False
+
+    cmd = speech.get_voice_command()
+    if cmd:
+        if "snap" in cmd.lower() or "open" in cmd.lower():
+            print(f"Voice: {cmd}")
+            process.open_neovim()
+        elif "right" in cmd.lower():
+            print(f"Voice: {cmd}")
+            process.window_right()
+        elif "left" in cmd.lower():
+            print(f"Voice: {cmd}")
+            process.window_left()
+        elif "close" in cmd.lower():
+            print(f"Voice: {cmd}")
+            process.close_window()
 
     # process video while camera on
     if not cam.camera_on or cam.cap is None:
@@ -49,8 +67,8 @@ def process_camera():
                 current_time = time.time()
 
                 if current_time - gestures.last_snap > SNAP_COOLDOWN:
-                    print("SNAP")
-                    process.open_neovim()
+                    print("SNAPPED")
+                    process.close_window()
                     gestures.last_snap = current_time
 
             direction = gestures.get_horizontal_direction(hand)
