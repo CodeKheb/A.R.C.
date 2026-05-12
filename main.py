@@ -1,76 +1,86 @@
+import sys
 import time
 import pygame
 import cv2
+
+from PyQt6.QtWidgets import QApplication
 
 import core.audio as audio
 import utils.process_utils as process
 import core.gestures as gestures
 import core.camera as cam
 
-from config import Esc, SNAP_COOLDOWN
+from gui.main_window import MainWindow
+from config import SNAP_COOLDOWN
 
-def draw_hands():
+app = QApplication(sys.argv)
+
+def draw_hands(frame, hand):
         thumb = hand[4]
         middle = hand[12]
         thumb_x, thumb_y = int(thumb.x * frame.shape[1]), int(thumb.y * frame.shape[0])
         middle_x, middle_y = int(middle.x * frame.shape[1]), int(middle.y * frame.shape[0])
         cv2.line(frame, (thumb_x, thumb_y), (middle_x, middle_y), (0, 255, 0), 2)
 
-while True:
+
+def process_camera():
     # detection for clap, camera toggle (indentation nightmare)
     if audio.clap_detected:
         cam.toggle_camera()
+        audio.clap_detected = False
 
     # process video while camera on
-    if cam.camera_on and cam.cap is not None:
-        ret, frame = cam.cap.read()
-        if not ret or frame is None:
-            time.sleep(0.01)
-            continue
+    if not cam.camera_on or cam.cap is None:
+        pygame.mixer.music.stop()
+        return None
+
+    ret, frame = cam.cap.read()
+    if not ret or frame is None:
+        return None
 
 
-        result = cam.convert_colors(frame)
+    result = cam.convert_colors(frame)
 
         # draw landmarks on frame
-        if result.hand_landmarks:
-            for hand in result.hand_landmarks:
-                if gestures.detect_snap(hand):
-                    current_time = time.time()
-                    if current_time - gestures.last_snap > SNAP_COOLDOWN:
-                        print("SNAP")
-                        process.open_neovim()
-                        gestures.last_snap = current_time
+    if result.hand_landmarks:
+        for hand in result.hand_landmarks:
 
-                direction = gestures.get_horizontal_direction(hand)
+            if gestures.detect_snap(hand):
+                current_time = time.time()
+
+                if current_time - gestures.last_snap > SNAP_COOLDOWN:
+                    print("SNAP")
+                    process.open_neovim()
+                    gestures.last_snap = current_time
+
+            direction = gestures.get_horizontal_direction(hand)
                     
-                if direction == "right":
-                    print("MOVED RIGHT")
-                    process.window_right()
+            if direction == "right":
+                print("MOVED RIGHT")
+                process.window_right()
 
-                if direction == "left":
-                    print("MOVED LEFT")
-                    process.window_left()
-
-
-                for lm in hand:
-                    x = int(lm.x * frame.shape[1])
-                    y = int(lm.y * frame.shape[0])
-                    cv2.circle(frame, (x, y), 3, (180, 100, 50), -1)
-
-                draw_hands()
+            if direction == "left":
+                print("MOVED LEFT")
+                process.window_left()
 
 
-        cv2.imshow("A.R.C. Hello World", frame)
+            for lm in hand:
+                x = int(lm.x * frame.shape[1])
+                y = int(lm.y * frame.shape[0])
+                cv2.circle(frame, (x, y), 3, (180, 100, 50), -1)
 
-        # Esc quits too ig
-        if cv2.waitKey(1) == Esc:
-            cam.stop_camera()
-            break
-    else:
-        pygame.mixer.music.stop()
-        time.sleep(0.05)
+            draw_hands(frame, hand)
 
+    return frame
+
+window = MainWindow(process_camera)
+window.show()
+
+exit_code = app.exec()
+        
+cam.stop_camera()
 audio.stream_stop()
+app.quit()
 
-
+sys.exit(exit_code)
 

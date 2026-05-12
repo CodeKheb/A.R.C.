@@ -31,7 +31,6 @@ def stop_camera():
         cap.release()
         cap = None
 
-    cv2.destroyAllWindows()
     camera_on = False
 
 def toggle_camera():
@@ -46,7 +45,6 @@ def toggle_camera():
             cap = None
         else:
             camera_on = True
-            cv2.namedWindow("A.R.C. Hello World")
 
     else:
         stop_camera()
